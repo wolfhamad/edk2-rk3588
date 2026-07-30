@@ -446,7 +446,6 @@
 		dp0_hpd: dp0-hpd {
 			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
-	};
 };
 
 
