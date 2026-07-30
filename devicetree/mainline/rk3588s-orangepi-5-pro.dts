@@ -359,12 +359,29 @@
 		};
 	};
 
+	sound {
+		headphone_amp_en: headphone-amp-en {
+			rockchip,pins = <4 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	wlan {
 		wifi_host_wake_irq: wifi-host-wake-irq {
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
+
+
+	};
 };
+
+
 
 /* eMMC — enabled on the Pro (disabled in shared dtsi) */
 &sdhci {
