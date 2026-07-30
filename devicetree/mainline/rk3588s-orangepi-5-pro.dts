@@ -120,6 +120,124 @@
 		status = "disabled";
 	};
 
+	aliases {
+		/delete-property/ ethernet0;
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc;
+		mmc2 = &sdio;
+	};
+
+	/*
+	 * Pro uses GPIO4_PB5 for headphone mute, but the base OPi5 DTSI
+	 * uses it for vcc_3v3_sd_s0. Delete the base regulator to avoid -EBUSY.
+	 */
+	/delete-node/ regulator-vcc-3v3-sd-s0;
+
+	/*
+	 * Headphone amplifier (not really an amplifier)
+	 * It uses MOSFETs to switch the audio signal
+	 * for Power Saving.
+	 */
+	headphone_amp: headphone-amp {
+		compatible = "simple-audio-amplifier";
+		enable-gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&headphone_amp_en>;
+		sound-name-prefix = "Headphones Amp";
+	};
+
+	/* Pro uses PWM for LEDs instead of GPIO */
+	/delete-node/ pwm-leds;
+
+	pwm-leds {
+		compatible = "pwm-leds";
+
+		led-0 {
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
+			linux,default-trigger = "heartbeat";
+			max-brightness = <255>;
+			pwms = <&pwm15 0 1000000 0>;
+		};
+
+		led-1 {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_ACTIVITY;
+			linux,default-trigger = "heartbeat";
+			max-brightness = <255>;
+			pwms = <&pwm3 0 1000000 0>;
+		};
+	};
+
+	/*
+	 * Pro uses i2s2 (i2s2m1 mux) for audio, not i2s1. Recreate the sound
+	 * card node pointing at i2s2_2ch instead.
+	 */
+	/delete-node/ analog-sound;
+
+	/*
+	 * Pro version works when CPU gives the MCLK to the codec
+	 * instead of the codec generating it itself.
+	 * SDO uses MOSFETs to switch the audio signal for power saving.
+	 * SDI needs Mic BIAS enabled to work.
+	 */
+	analog-sound {
+		compatible = "simple-audio-card";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_detect>;
+		simple-audio-card,name = "rockchip,es8388";
+		simple-audio-card,bitclock-master = <&masterdai>;
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&masterdai>;
+		simple-audio-card,hp-det-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_HIGH>;
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,aux-devs = <&headphone_amp>;
+		simple-audio-card,routing =
+			"Headphones", "Headphones Amp OUTL",
+			"Headphones", "Headphones Amp OUTR",
+			"Headphones Amp INL", "LOUT1",
+			"Headphones Amp INR", "ROUT1",
+			"LINPUT1", "Microphone Jack",
+			"RINPUT1", "Microphone Jack",
+			"Microphone Jack", "Mic Bias",
+			"LINPUT2", "Onboard Microphone",
+			"RINPUT2", "Onboard Microphone",
+			"Onboard Microphone", "Mic Bias";
+		simple-audio-card,widgets =
+			"Microphone", "Microphone Jack",
+			"Microphone", "Onboard Microphone",
+			"Headphone", "Headphones";
+
+		/* CPU is the master */
+		masterdai: simple-audio-card,cpu {
+			sound-dai = <&i2s2_2ch>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&es8388>;
+		};
+	};
+
+	/*
+	 * Fan is controlled by PWM and turns on a MOSFET (Q2) to power the fan.
+	 * Recommended using a very low PWM frequency (50 Hz / 20,000,000 ns period).
+	 * EXPLANATION: The hardware has an aggressive RC low-pass filter (10K / 100nF)
+	 * at the MOSFET gate with a time constant of 1ms. If standard high-frequency PWM
+	 * (25kHz) is used, the gate capacitor will integrate the signal as a DC Voltage,
+	 * forcing the SOT-23 MOSFET into its linear (ohmic) region, causing
+	 * massive thermal dissipation and eventually burning out the component.
+	 * A 20ms period allows enough time for the gate to fully charge and discharge.
+	 */
+	fan: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		/* Extend SBC capacitors and CPU lifetime */
+		cooling-levels = <160 190 215 235 255>;
+		fan-supply = <&vcc5v0_sys>;
+		pwms = <&pwm2 0 20000000 0>;
+	};
+
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&hym8563>;
@@ -128,6 +246,107 @@
 		reset-gpios = <&gpio0 RK_PD0 GPIO_ACTIVE_LOW>;
 	};
 };
+
+
+/* 40-pin header pins 3/5 */
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1m4_xfer>;
+	status = "okay";
+};
+
+/*
+ * Pro routes audio codec via i2c3 (not i2c6) and i2s2m1 (not i2s1m0).
+ * Delete the inherited es8388 node from i2c6 and redeclare it here.
+ */
+/delete-node/ &es8388;
+
+/*
+ * Audio Codec ES8388
+ * It uses custom "everest,mic-lrck-same" to set ADC LRCK as 1 by default
+ * Allowing Microphone to work and avoid using "DAC LRCK" as it causes
+ * the codec to never start Microphone clock.
+ */
+&i2c3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m0_xfer>;
+	status = "okay";
+
+	es8388: audio-codec@11 {
+		compatible = "everest,es8388", "everest,es8328";
+		reg = <0x11>;
+		clocks = <&cru I2S2_2CH_MCLKOUT>;
+		clock-names = "mclk";
+		AVDD-supply = <&vcc_3v3_s0>;
+		DVDD-supply = <&vcc_1v8_s0>;
+		HPVDD-supply = <&vcc_3v3_s0>;
+		PVDD-supply = <&vcc_1v8_s0>;
+		assigned-clocks = <&cru I2S2_2CH_MCLKOUT>;
+		assigned-clock-rates = <12288000>;
+		#sound-dai-cells = <0>;
+		everest,mic-lrck-same;
+	};
+};
+
+/* 40-pin header pins 27/28 */
+&i2c4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c4m3_xfer>;
+	status = "okay";
+};
+
+/*
+ * i2s1_8ch uses i2s1m0 which occupies GPIO4_PA0 (CLKREQ#) and GPIO4_PA1
+ * (WAKE#) needed for the NVMe M.2 slot. Disable it; audio is on i2s2_2ch.
+ */
+&i2s1_8ch {
+	status = "disabled";
+};
+
+/* Audio codec on i2s2, m1 mux; add mclk pin to the base pinctrl */
+&i2s2_2ch {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s2m1_sclk
+							 &i2s2m1_mclk
+							 &i2s2m1_lrck
+							 &i2s2m1_sdi
+							 &i2s2m1_sdo>;
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+
+&package_thermal {
+	polling-delay = <1000>;
+
+	cooling-maps {
+		map0 {
+			trip = <&package_fan0>;
+			cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+		};
+
+		map1 {
+			trip = <&package_fan1>;
+			cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+		};
+	};
+
+	trips {
+		package_fan0: package-fan0 {
+			hysteresis = <2000>;
+			temperature = <55000>;
+			type = "active";
+		};
+
+		package_fan1: package-fan1 {
+			hysteresis = <2000>;
+			temperature = <65000>;
+			type = "active";
+		};
+	};
+};
+
+
+
 
 &pinctrl {
 	bluetooth {
