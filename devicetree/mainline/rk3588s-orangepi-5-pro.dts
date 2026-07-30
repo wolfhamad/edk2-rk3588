@@ -451,6 +451,16 @@
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
+
+	ethernet {
+		vcc3v3_phy1_en: vcc3v3-phy1-en {
+			rockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		pcie2x1l2_rstn: pcie2x1l2-rstn {
+			rockchip,pins = <3 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	dp {
 		dp0_en: dp0-en {
 			rockchip,pins = <3 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -459,6 +469,7 @@
 		dp0_hpd: dp0-hpd {
 			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+	};
 };
 
 /* GMAC — Pro uses RGMII Motorcomm PHY. Enable SoC GMAC. */
