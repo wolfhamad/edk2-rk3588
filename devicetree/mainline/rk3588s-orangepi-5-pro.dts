@@ -451,9 +451,6 @@
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
-
-
-	};
 	dp {
 		dp0_en: dp0-en {
 			rockchip,pins = <3 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
