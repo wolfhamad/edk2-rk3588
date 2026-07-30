@@ -119,9 +119,7 @@
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
-};
 
-	/* Power Sequence for SDIO (WiFi/Bluetooth Card) */
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&hym8563>;
@@ -129,7 +127,7 @@
 		post-power-on-delay-ms = <200>;
 		reset-gpios = <&gpio0 RK_PD0 GPIO_ACTIVE_LOW>;
 	};
-
+};
 
 /* eMMC — enabled on the Pro (disabled in shared dtsi) */
 &sdhci {
