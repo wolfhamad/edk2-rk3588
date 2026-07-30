@@ -461,13 +461,6 @@
 		};
 };
 
-
-
-/* eMMC — enabled on the Pro (disabled in shared dtsi) */
-&sdhci {
-	status = "disabled";
-};
-
 /* GMAC — Pro uses RGMII Motorcomm PHY. Enable SoC GMAC. */
 &gmac1 {
 	status = "disabled";
