@@ -41,7 +41,7 @@
 		power-domains = <&power RK3588_PD_VO0>;
 		resets = <&cru SRST_DP0>;
 		#sound-dai-cells = <0>;
-		status = "disabled";
+		status = "okay";
 
 		ports {
 			#address-cells = <1>;
