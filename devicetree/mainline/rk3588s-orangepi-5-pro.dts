@@ -8,9 +8,13 @@
 
 /dts-v1/;
 
-#include "upstream/src/arm64/rockchip/rk3588-base.dtsi"
+#include "upstream/src/arm64/rockchip/rk3588s-orangepi-5.dtsi"
 
 / {
+	model = "Xunlong Orange Pi 5 Pro";
+	compatible = "xunlong,orangepi-5-pro", "rockchip,rk3588s";
+
+
 	dp0: dp@fde50000 {
 		compatible = "rockchip,rk3588-dp";
 		reg = <0x0 0xfde50000 0x0 0x4000>;
@@ -40,17 +44,6 @@
 			};
 		};
 	};
-}
-
-
-
-/dts-v1/;
-
-#include "upstream/src/arm64/rockchip/rk3588s-orangepi-5.dtsi"
-
-/ {
-	model = "Xunlong Orange Pi 5 Pro";
-	compatible = "xunlong,orangepi-5-pro", "rockchip,rk3588s";
 
 	/* 3.3 V rail for PCIe Ethernet NIC — active-high enable on GPIO3_B7 */
 	vcc3v3_pcie_eth: regulator-vcc3v3-pcie-eth {
